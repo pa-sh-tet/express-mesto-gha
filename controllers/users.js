@@ -2,11 +2,13 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable object-shorthand */
 const User = require('../models/user');
-const { success_create_code, error_code, uncorrect_error } = require('../utils/constants');
+const {
+  success_code, success_create_code, error_code, uncorrect_error,
+} = require('../utils/constants');
 
 module.exports.getUsers = (req, res) => {
   User.find({})
-    .then((users) => res.status(success_create_code).send({ data: users }))
+    .then((users) => res.status(success_code).send({ data: users }))
     .catch((err) => res.status(error_code).send({ message: err.message }));
 };
 
@@ -26,7 +28,7 @@ module.exports.postUser = (req, res) => {
 
 module.exports.getUserId = (req, res) => {
   User.findById(req.params.id)
-    .then((user) => res.status(success_create_code).send({ data: user }))
+    .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(uncorrect_error).send({ message: err.message });
@@ -46,7 +48,7 @@ module.exports.patchUserInfo = (req, res) => {
     },
     { new: true, runValidators: true },
   )
-    .then((user) => res.status(success_create_code).send({ data: user }))
+    .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(uncorrect_error).send({ message: err.message });
@@ -66,7 +68,7 @@ module.exports.patchUserAvatar = (req, res) => {
     { avatar: avatar },
     { new: true, runValidators: true },
   )
-    .then((user) => res.status(success_create_code).send({ data: user }))
+    .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(uncorrect_error).send({ message: err.message });

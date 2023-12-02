@@ -1,11 +1,13 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
 const Card = require('../models/card');
-const { success_create_code, error_code, uncorrect_error } = require('../utils/constants');
+const {
+  success_code, success_create_code, error_code, uncorrect_error,
+} = require('../utils/constants');
 
-module.exports.getUsers = (req, res) => {
+module.exports.getCards = (req, res) => {
   Card.find({})
-    .then((cards) => res.status(success_create_code).send({ data: cards }))
+    .then((cards) => res.status(success_code).send({ data: cards }))
     .catch((err) => res.status(error_code).send({ message: err.message }));
 };
 
@@ -25,7 +27,7 @@ module.exports.postCards = (req, res) => {
 
 module.exports.deleteCard = (req, res) => {
   Card.findByIdAndDelete(req.params.id)
-    .then((card) => res.status(success_create_code).send({ data: card }))
+    .then((card) => res.status(success_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(uncorrect_error).send({ message: err.message });
@@ -40,7 +42,7 @@ module.exports.putLike = (req, res) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .then((card) => res.status(success_create_code).send({ data: card }))
+    .then((card) => res.status(success_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(uncorrect_error).send({ message: err.message });
@@ -55,7 +57,7 @@ module.exports.deleteLike = (req, res) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .then((card) => res.status(success_create_code).send({ data: card }))
+    .then((card) => res.status(success_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
         res.status(uncorrect_error).send({ message: err.message });
