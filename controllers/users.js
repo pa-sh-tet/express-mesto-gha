@@ -1,43 +1,65 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
 /* eslint-disable object-shorthand */
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 const {
-  success_code, success_create_code, error_code, uncorrect_error,
+  success_code, success_create_code, error_code, uncorrect_error, not_found_error,
 } = require('../utils/constants');
 
-module.exports.getUsers = (req, res) => {
+module.exports.getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.status(success_code).send({ data: users }))
-    .catch((err) => res.status(error_code).send({ message: err.message }));
+    .catch(next);
 };
 
-module.exports.postUser = (req, res) => {
-  const { name, about, avatar } = req.body;
+module.exports.postUser = (req, res, next) => {
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
 
-  User.create({ name, about, avatar })
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name,
+      about,
+      avatar,
+      email,
+      password: hash,
+    }))
     .then((user) => res.status(success_create_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(uncorrect_error).send({ message: err.message });
+        next(res.status(uncorrect_error).send({ message: err.message }));
       } else {
-        res.status(error_code).send({ message: err.message });
+        next(err);
       }
     });
 };
 
-module.exports.getUserId = (req, res) => {
+module.exports.getUserId = (req, res, next) => {
   User.findById(req.params.id)
     .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(uncorrect_error).send({ message: err.message });
+        next(res.status(uncorrect_error).send({ message: err.message }));
       }
-      res.status(error_code).send({ message: err.message });
+      next(err);
     });
 };
 
-module.exports.patchUserInfo = (req, res) => {
+module.exports.getUserInfo = (req, res, next) => {
+  User.findById(req.user._id)
+    .then((user) => {
+      if (!user) {
+        res.status(not_found_error).send('Пользователь не найден');
+      }
+      res.send(user);
+    })
+    .catch((err) => next(err));
+};
+
+module.exports.patchUserInfo = (req, res, next) => {
   const { name, about } = req.body;
 
   User.findByIdAndUpdate(
@@ -51,16 +73,16 @@ module.exports.patchUserInfo = (req, res) => {
     .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(uncorrect_error).send({ message: err.message });
+        next(res.status(uncorrect_error).send({ message: err.message }));
       } else if (err.name === 'ValidationError') {
-        res.status(uncorrect_error).send({ message: err.message });
+        next(res.status(uncorrect_error).send({ message: err.message }));
       } else {
-        res.status(error_code).send({ message: err.message });
+        next(err);
       }
     });
 };
 
-module.exports.patchUserAvatar = (req, res) => {
+module.exports.patchUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   User.findByIdAndUpdate(
@@ -71,11 +93,27 @@ module.exports.patchUserAvatar = (req, res) => {
     .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(uncorrect_error).send({ message: err.message });
+        next(res.status(uncorrect_error).send({ message: err.message }));
       } else if (err.name === 'ValidationError') {
-        res.status(uncorrect_error).send({ message: err.message });
+        next(res.status(uncorrect_error).send({ message: err.message }));
       } else {
-        res.status(error_code).send({ message: err.message });
+        next(err);
       }
     });
+};
+
+module.exports.login = (req, res, next) => {
+  const { email, password } = req.body;
+
+  User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign(
+        { _id: user._id },
+        'super-strong-secret',
+        { expiresIn: '7d' },
+      );
+      res.cookie('jwt', token, { httpOnly: true, maxAge: 7 * 24 * 360000, sameSite: true });
+      res.send({ token });
+    })
+    .catch(next);
 };
