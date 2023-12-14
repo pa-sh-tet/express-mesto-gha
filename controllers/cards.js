@@ -1,8 +1,12 @@
 /* eslint-disable camelcase */
 /* eslint-disable no-unused-vars */
 const Card = require('../models/card');
+const BadRequest = require('../errors/BadRequest');
+const Forbidden = require('../errors/Forbidden');
+
 const {
-  success_code, success_create_code, error_code, uncorrect_error, forbidden_error,
+  success_code,
+  success_create_code,
 } = require('../utils/constants');
 
 module.exports.getCards = (req, res, next) => {
@@ -18,25 +22,34 @@ module.exports.postCards = (req, res, next) => {
     .then((card) => res.status(success_create_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
-      } else {
-        next(err);
+        next(new BadRequest('Переданы некорректные данные при создании карточки'));
+        return;
       }
+
+      next(err);
     });
 };
 
 module.exports.deleteCard = (req, res, next) => {
-  Card.findByIdAndDelete(req.params.id)
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (card.owner.toString() !== req.user._id) {
-        res.status(forbidden_error).send({ message: 'Вы не можете удалить эту карточку!' });
+        next(new Forbidden('Вы не можете удалить эту карточку!'));
+        return;
       }
-      res.status(success_code).send({ data: card });
+
+      Card.findByIdAndDelete(req.params.cardId)
+        .then(() => {
+          res.status(success_code).send({ data: card });
+        })
+        .catch(next);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
+        next(new BadRequest('Некорректный id карточки'));
+        return;
       }
+
       next(err);
     });
 };
@@ -50,8 +63,10 @@ module.exports.putLike = (req, res, next) => {
     .then((card) => res.status(success_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
+        next(new BadRequest('Некорректный id карточки'));
+        return;
       }
+
       next(err);
     });
 };
@@ -65,8 +80,10 @@ module.exports.deleteLike = (req, res, next) => {
     .then((card) => res.status(success_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
+        next(new BadRequest('Некорректный id карточки'));
+        return;
       }
+
       next(err);
     });
 };

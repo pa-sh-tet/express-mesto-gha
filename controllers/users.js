@@ -4,8 +4,13 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const BadRequest = require('../errors/BadRequest');
+const NotFound = require('../errors/NotFound');
+const Conflict = require('../errors/Conflict');
+
 const {
-  success_code, success_create_code, error_code, uncorrect_error, not_found_error,
+  success_code,
+  success_create_code,
 } = require('../utils/constants');
 
 module.exports.getUsers = (req, res, next) => {
@@ -30,10 +35,16 @@ module.exports.postUser = (req, res, next) => {
     .then((user) => res.status(success_create_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
-      } else {
-        next(err);
+        next(new BadRequest('Переданы некорректные данные при создании пользователя'));
+        return;
       }
+
+      if (err.code === 11000) {
+        next(new Conflict('Пользователь с таким email уже существует'));
+        return;
+      }
+
+      next(err);
     });
 };
 
@@ -42,7 +53,8 @@ module.exports.getUserId = (req, res, next) => {
     .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
+        next(new BadRequest('Пользователь с данным id не найден'));
+        return;
       }
       next(err);
     });
@@ -52,7 +64,8 @@ module.exports.getUserInfo = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => {
       if (!user) {
-        res.status(not_found_error).send('Пользователь не найден');
+        next(new NotFound('Пользователь не найден'));
+        return;
       }
       res.send(user);
     })
@@ -72,13 +85,12 @@ module.exports.patchUserInfo = (req, res, next) => {
   )
     .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
-      } else if (err.name === 'ValidationError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
-      } else {
-        next(err);
+      if (err.name === 'ValidationError') {
+        next(new BadRequest('Переданы некорректные данные'));
+        return;
       }
+
+      next(err);
     });
 };
 
@@ -92,13 +104,12 @@ module.exports.patchUserAvatar = (req, res, next) => {
   )
     .then((user) => res.status(success_code).send({ data: user }))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
-      } else if (err.name === 'ValidationError') {
-        next(res.status(uncorrect_error).send({ message: err.message }));
-      } else {
-        next(err);
+      if (err.name === 'ValidationError') {
+        next(new BadRequest('Переданы некорректные данные'));
+        return;
       }
+
+      next(err);
     });
 };
 
