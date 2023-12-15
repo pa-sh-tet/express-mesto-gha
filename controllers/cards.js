@@ -18,7 +18,7 @@ module.exports.getCards = (req, res, next) => {
 module.exports.postCards = (req, res, next) => {
   const { name, link } = req.body;
 
-  Card.create({ name, link })
+  Card.create({ name, link, owner: req.user._id })
     .then((card) => res.status(success_create_code).send({ data: card }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
@@ -72,7 +72,7 @@ module.exports.putLike = (req, res, next) => {
 };
 
 module.exports.deleteLike = (req, res, next) => {
-  Card.findByIdAndRemove(
+  Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } },
     { new: true },
