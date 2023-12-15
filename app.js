@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const express = require('express');
 const mongoose = require('mongoose');
+const { errors } = require('celebrate');
 const auth = require('./middlewares/auth');
 const errorHandler = require('./middlewares/errorHandler');
 const NotFound = require('./errors/NotFound');
@@ -30,6 +31,8 @@ app.use('/cards', cardRouter);
 app.use('*', (req, res, next) => {
   next(new NotFound('Запрашиваемый ресурс не найден'));
 });
+
+app.use(errors());
 app.use(errorHandler);
 
 mongoose.connect('mongodb://127.0.0.1:27017/mestodb');
